@@ -41,7 +41,7 @@ After the **Build Android APK** workflow completes, the debug APK is available a
 
 ### Build locally
 
-Requirements: Node.js 22+, Android Studio with Android SDK installed, Java 17.
+Requirements: Node.js 22+, Android Studio with Android SDK installed, Java 21.
 
 ```bash
 npm install
