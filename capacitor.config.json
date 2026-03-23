@@ -1,7 +1,7 @@
 {
   "appId": "com.escapefromla.game",
   "appName": "Escape from LA",
-  "webDir": ".",
+  "webDir": "www",
   "android": {
     "minWebViewVersion": 60
   }
