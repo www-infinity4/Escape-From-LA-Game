@@ -30,12 +30,36 @@ Open `index.html` in any modern web browser. No build step or server required.
 - Watch your ammo — pick up blue **A** packs before running dry.
 - The extraction point is always visible in the top-right; it pulses brightly once the objective is secured.
 
+## Android Build
+
+The game can be packaged as an Android APK using [Capacitor](https://capacitorjs.com/).  
+A GitHub Actions workflow (`.github/workflows/build-android.yml`) automatically builds a debug APK on every push/PR to `main`/`master`.
+
+### Download the APK
+
+After the **Build Android APK** workflow completes, the debug APK is available as a workflow artifact named `escape-from-la-debug` on the Actions tab.
+
+### Build locally
+
+Requirements: Node.js 22+, Android Studio with Android SDK installed, Java 17.
+
+```bash
+npm install
+npx cap add android
+npx cap sync android
+cd android && ./gradlew assembleDebug
+# APK: android/app/build/outputs/apk/debug/app-debug.apk
+```
+
 ## Files
 
 | File | Purpose |
 |---|---|
 | `index.html` | Game entry point |
 | `game.js` | All game logic (single self-contained script) |
+| `capacitor.config.json` | Capacitor configuration for Android packaging |
+| `package.json` | Node.js project manifest with Capacitor dependencies |
+| `.github/workflows/build-android.yml` | CI workflow that builds the Android APK |
 
 ## Background
 
