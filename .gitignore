@@ -1,0 +1,8 @@
+# Node dependencies
+node_modules/
+
+# Capacitor generated Android project (built in CI)
+android/
+
+# npm lock file for generated packages
+# package-lock.json is committed to pin dependency versions
