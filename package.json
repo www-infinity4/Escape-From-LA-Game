@@ -4,7 +4,8 @@
   "description": "Snake Plissken's Escape – browser game wrapped for Android via Capacitor",
   "private": true,
   "scripts": {
-    "android:build": "npx cap add android && npx cap sync android"
+    "build": "mkdir -p www && cp index.html game.js www/",
+    "android:build": "npm run build && npx cap add android && npx cap sync android"
   },
   "dependencies": {
     "@capacitor/android": "^8.2.0",
