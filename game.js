@@ -193,6 +193,9 @@
   const keys  = {};
   const mouse = { x: CANVAS_W / 2, y: CANVAS_H / 2, down: false };
 
+  // Touch capability detection
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
   document.addEventListener('keydown', e => {
     keys[e.code] = true;
     if (e.code === 'Enter') {
@@ -210,6 +213,111 @@
   });
   canvas.addEventListener('mousedown', () => { mouse.down = true; });
   canvas.addEventListener('mouseup',   () => { mouse.down = false; });
+
+  // ── Touch controls ───────────────────────────────────────────────────────────
+  const touchState = {
+    joystick: { active: false, id: null, cx: 0, cy: 0, dx: 0, dy: 0 },
+    fire:     { active: false }
+  };
+
+  const joyZone  = document.getElementById('joystick-zone');
+  const joyBase  = document.getElementById('joystick-base');
+  const joyThumb = document.getElementById('joystick-thumb');
+  const fireBtn  = document.getElementById('fire-btn');
+  const JOY_R    = 55;   // effective radius for thumb travel (px)
+
+  function updateJoyUI() {
+    if (touchState.joystick.active) {
+      joyBase.style.display = 'block';
+      joyBase.style.left    = touchState.joystick.cx + 'px';
+      joyBase.style.top     = touchState.joystick.cy + 'px';
+      const tx = touchState.joystick.dx * JOY_R;
+      const ty = touchState.joystick.dy * JOY_R;
+      joyThumb.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px))`;
+    } else {
+      joyBase.style.display = 'none';
+    }
+  }
+
+  function startGame() {
+    if (gameState === 'menu' || gameState === 'dead' || gameState === 'win') {
+      initGame();
+      gameState = 'playing';
+    }
+  }
+
+  if (joyZone) {
+    joyZone.addEventListener('touchstart', e => {
+      e.preventDefault();
+      startGame();
+      const t    = e.changedTouches[0];
+      const rect = joyZone.getBoundingClientRect();
+      touchState.joystick.active = true;
+      touchState.joystick.id     = t.identifier;
+      touchState.joystick.cx     = t.clientX - rect.left;
+      touchState.joystick.cy     = t.clientY - rect.top;
+      touchState.joystick.dx     = 0;
+      touchState.joystick.dy     = 0;
+      updateJoyUI();
+    }, { passive: false });
+
+    joyZone.addEventListener('touchmove', e => {
+      e.preventDefault();
+      for (const t of e.changedTouches) {
+        if (t.identifier !== touchState.joystick.id) continue;
+        const rect = joyZone.getBoundingClientRect();
+        const rx   = t.clientX - rect.left - touchState.joystick.cx;
+        const ry   = t.clientY - rect.top  - touchState.joystick.cy;
+        const mag  = Math.sqrt(rx * rx + ry * ry);
+        if (mag > 0) {
+          touchState.joystick.dx = rx / Math.max(mag, JOY_R);
+          touchState.joystick.dy = ry / Math.max(mag, JOY_R);
+        } else {
+          touchState.joystick.dx = 0;
+          touchState.joystick.dy = 0;
+        }
+        updateJoyUI();
+      }
+    }, { passive: false });
+
+    joyZone.addEventListener('touchend', e => {
+      e.preventDefault();
+      for (const t of e.changedTouches) {
+        if (t.identifier !== touchState.joystick.id) continue;
+        touchState.joystick.active = false;
+        touchState.joystick.dx     = 0;
+        touchState.joystick.dy     = 0;
+        updateJoyUI();
+      }
+    }, { passive: false });
+
+    joyZone.addEventListener('touchcancel', () => {
+      touchState.joystick.active = false;
+      touchState.joystick.dx     = 0;
+      touchState.joystick.dy     = 0;
+      updateJoyUI();
+    }, { passive: false });
+  }
+
+  if (fireBtn) {
+    fireBtn.addEventListener('touchstart', e => {
+      e.preventDefault();
+      startGame();
+      touchState.fire.active = true;
+      fireBtn.classList.add('active');
+    }, { passive: false });
+
+    fireBtn.addEventListener('touchend', e => {
+      e.preventDefault();
+      touchState.fire.active = false;
+      fireBtn.classList.remove('active');
+    }, { passive: false });
+
+    fireBtn.addEventListener('touchcancel', () => {
+      touchState.fire.active = false;
+      fireBtn.classList.remove('active');
+    }, { passive: false });
+  }
 
   // ── Classes ──────────────────────────────────────────────────────────────────
   class Player {
@@ -312,12 +420,34 @@
     // Normalise diagonal movement to avoid faster-than-PLAYER_SPEED travel (√2/2 ≈ 0.7071)
     if (dx && dy) { dx *= Math.SQRT1_2; dy *= Math.SQRT1_2; }
 
+    // Touch joystick movement (only when no keyboard direction is held)
+    if (touchState.joystick.active && dx === 0 && dy === 0) {
+      dx = touchState.joystick.dx * PLAYER_SPEED;
+      dy = touchState.joystick.dy * PLAYER_SPEED;
+    }
+
     slide(player, dx, dy, PLAYER_RADIUS);
 
-    player.angle = angleTo(player, mouse);
+    // Auto-aim at nearest alive enemy when using touch controls; otherwise follow mouse
+    if (touchState.joystick.active || touchState.fire.active) {
+      let nearestEnemy = null, nearestDist = Infinity;
+      for (const e of enemies) {
+        if (!e.alive) continue;
+        const d = dist2(player, e);
+        if (d < nearestDist) { nearestDist = d; nearestEnemy = e; }
+      }
+      if (nearestEnemy) {
+        player.angle = angleTo(player, nearestEnemy);
+      } else if (touchState.joystick.active &&
+                 (touchState.joystick.dx !== 0 || touchState.joystick.dy !== 0)) {
+        player.angle = Math.atan2(touchState.joystick.dy, touchState.joystick.dx);
+      }
+    } else {
+      player.angle = angleTo(player, mouse);
+    }
 
     if (player.shootCD > 0) player.shootCD--;
-    if ((keys['Space'] || mouse.down) && player.shootCD === 0 && player.ammo > 0) {
+    if ((keys['Space'] || mouse.down || touchState.fire.active) && player.shootCD === 0 && player.ammo > 0) {
       bullets.push(new Bullet(player.x, player.y, player.angle, true));
       player.ammo--;
       player.shootCD = PLAYER_SHOOT_CD;
@@ -486,8 +616,13 @@
     ctx.fillStyle = '#fff';
     ctx.fillText('CONTROLS', CANVAS_W / 2, 424);
     ctx.fillStyle = '#888';
-    ctx.fillText('WASD / Arrow Keys : Move player', CANVAS_W / 2, 448);
-    ctx.fillText('Mouse Aim + Left Click / Spacebar : Shoot', CANVAS_W / 2, 468);
+    if (isTouchDevice) {
+      ctx.fillText('Left side of screen : Virtual joystick (Move)', CANVAS_W / 2, 448);
+      ctx.fillText('FIRE button (right) : Auto-aim and shoot', CANVAS_W / 2, 468);
+    } else {
+      ctx.fillText('WASD / Arrow Keys : Move player', CANVAS_W / 2, 448);
+      ctx.fillText('Mouse Aim + Left Click / Spacebar : Shoot', CANVAS_W / 2, 468);
+    }
     ctx.fillText('Collect the glowing  ★  to secure the Sword of Damocles', CANVAS_W / 2, 488);
     ctx.fillText('Reach the  ⊕  extraction marker to escape', CANVAS_W / 2, 508);
 
@@ -495,7 +630,7 @@
     if (Math.floor(Date.now() / 550) % 2 === 0) {
       ctx.font = 'bold 17px "Courier New"';
       ctx.fillStyle = C.text;
-      ctx.fillText('[ PRESS  ENTER  TO  BEGIN ]', CANVAS_W / 2, 558);
+      ctx.fillText(isTouchDevice ? '[ TAP TO BEGIN ]' : '[ PRESS  ENTER  TO  BEGIN ]', CANVAS_W / 2, 558);
     }
   }
 
@@ -743,7 +878,7 @@
     if (Math.floor(Date.now() / 600) % 2 === 0) {
       ctx.font = '14px "Courier New"';
       ctx.fillStyle = C.text;
-      ctx.fillText('Press ENTER to play again', CANVAS_W / 2, CANVAS_H / 2 + 76);
+      ctx.fillText(isTouchDevice ? 'Tap to play again' : 'Press ENTER to play again', CANVAS_W / 2, CANVAS_H / 2 + 76);
     }
   }
 
