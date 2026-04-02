@@ -440,7 +440,11 @@
         player.angle = angleTo(player, nearestEnemy);
       } else if (touchState.joystick.active &&
                  (touchState.joystick.dx !== 0 || touchState.joystick.dy !== 0)) {
+        // Update angle from joystick direction and keep it for when stick is at rest
         player.angle = Math.atan2(touchState.joystick.dy, touchState.joystick.dx);
+        touchState.joystick.lastAngle = player.angle;
+      } else if (touchState.joystick.lastAngle !== undefined) {
+        player.angle = touchState.joystick.lastAngle;
       }
     } else {
       player.angle = angleTo(player, mouse);
