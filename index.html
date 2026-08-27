@@ -15,25 +15,52 @@
       min-height: 100vh;
       font-family: 'Courier New', Courier, monospace;
       color: #c8a000;
-      overflow: hidden;
+      overflow-x: hidden;
     }
     canvas {
       display: block;
       border: 2px solid #c8a000;
       image-rendering: pixelated;
       cursor: crosshair;
+      width: min(100vw, 800px);
+      height: auto;
+      touch-action: none;
     }
     #hint {
       margin-top: 6px;
-      font-size: 11px;
-      color: #555;
+      font-size: 14px;
+      color: #aaa;
       letter-spacing: 0.05em;
+      text-align: center;
+      padding: 0 12px;
+    }
+    #mobile-controls { display:none; width:min(100vw,800px); padding:10px 14px 18px; justify-content:space-between; align-items:center; gap:16px; }
+    #dpad { display:grid; grid-template-columns:repeat(3,58px); grid-template-rows:repeat(2,58px); gap:3px; }
+    .touch-btn { border:2px solid #c8a000; background:#17131c; color:#ffd95a; border-radius:12px; font:bold 22px 'Courier New'; touch-action:none; user-select:none; -webkit-user-select:none; }
+    .touch-btn:active,.touch-btn.active { background:#5b4210; color:#fff; }
+    #up { grid-column:2; } #left { grid-column:1;grid-row:2 } #down { grid-column:2;grid-row:2 } #right { grid-column:3;grid-row:2 }
+    #actions { display:flex; gap:12px; align-items:center; }
+    .action { width:76px;height:76px;border-radius:50%;font-size:15px; }
+    #startBtn { width:76px;height:42px;border-radius:20px;font-size:12px; }
+    @media (pointer:coarse), (max-width:850px) {
+      body { justify-content:flex-start; min-height:100dvh; }
+      #mobile-controls { display:flex; }
+      #hint { font-size:16px; line-height:1.35; color:#eee; }
     }
   </style>
 </head>
 <body>
   <canvas id="gameCanvas" width="800" height="600"></canvas>
-  <div id="hint">WASD / Arrow Keys: Move &nbsp;|&nbsp; Mouse Aim + Click / Spacebar: Shoot &nbsp;|&nbsp; Enter: Start</div>
+  <div id="hint">Move with the pad. FIRE shoots in your last movement direction. START begins or restarts.</div>
+  <div id="mobile-controls" aria-label="Android game controls">
+    <div id="dpad">
+      <button class="touch-btn" id="up" aria-label="Move up">▲</button>
+      <button class="touch-btn" id="left" aria-label="Move left">◀</button>
+      <button class="touch-btn" id="down" aria-label="Move down">▼</button>
+      <button class="touch-btn" id="right" aria-label="Move right">▶</button>
+    </div>
+    <div id="actions"><button class="touch-btn" id="startBtn">START</button><button class="touch-btn action" id="fireBtn">FIRE</button></div>
+  </div>
   <script src="game.js"></script>
 <script src="https://www-infinity4.github.io/Mint-For-Infinity/infinity-wallet-menu.js?v=20260814-menu2"></script></body>
 </html>
