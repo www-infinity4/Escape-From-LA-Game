@@ -211,6 +211,34 @@
   canvas.addEventListener('mousedown', () => { mouse.down = true; });
   canvas.addEventListener('mouseup',   () => { mouse.down = false; });
 
+  // Android controls: held movement, last-direction aiming, and touch fire.
+  const touchDirections = {
+    up: { code:'ArrowUp', dx:0, dy:-1 }, down: { code:'ArrowDown', dx:0, dy:1 },
+    left: { code:'ArrowLeft', dx:-1, dy:0 }, right: { code:'ArrowRight', dx:1, dy:0 },
+  };
+  function aimDirection(dx, dy) {
+    if (!player) return;
+    mouse.x = player.x + dx * 180; mouse.y = player.y + dy * 180;
+  }
+  Object.entries(touchDirections).forEach(([id, dir]) => {
+    const button = document.getElementById(id); if (!button) return;
+    const press = e => { e.preventDefault(); keys[dir.code]=true; aimDirection(dir.dx,dir.dy); button.classList.add('active'); };
+    const release = e => { e.preventDefault(); keys[dir.code]=false; button.classList.remove('active'); };
+    button.addEventListener('pointerdown',press); button.addEventListener('pointerup',release);
+    button.addEventListener('pointercancel',release); button.addEventListener('pointerleave',release);
+  });
+  const fireButton = document.getElementById('fireBtn');
+  if (fireButton) {
+    const on=e=>{e.preventDefault();mouse.down=true;fireButton.classList.add('active')};
+    const off=e=>{e.preventDefault();mouse.down=false;fireButton.classList.remove('active')};
+    fireButton.addEventListener('pointerdown',on); fireButton.addEventListener('pointerup',off);
+    fireButton.addEventListener('pointercancel',off); fireButton.addEventListener('pointerleave',off);
+  }
+  const startButton = document.getElementById('startBtn');
+  if (startButton) startButton.addEventListener('click', () => {
+    if (gameState === 'menu' || gameState === 'dead' || gameState === 'win') { initGame(); gameState='playing'; }
+  });
+
   // ── Classes ──────────────────────────────────────────────────────────────────
   class Player {
     constructor() {
@@ -467,7 +495,7 @@
     ctx.fillRect(80, 202, 640, 2);
 
     // Story
-    ctx.font = '13px "Courier New"';
+    ctx.font = '16px "Courier New"';
     ctx.fillStyle = '#999';
     [
       'Year 2013. The city of Los Angeles has been declared a maximum security',
@@ -482,12 +510,12 @@
     ctx.fillStyle = C.text;
     ctx.fillRect(80, 400, 640, 1);
 
-    ctx.font = '13px "Courier New"';
+    ctx.font = '16px "Courier New"';
     ctx.fillStyle = '#fff';
     ctx.fillText('CONTROLS', CANVAS_W / 2, 424);
     ctx.fillStyle = '#888';
-    ctx.fillText('WASD / Arrow Keys : Move player', CANVAS_W / 2, 448);
-    ctx.fillText('Mouse Aim + Left Click / Spacebar : Shoot', CANVAS_W / 2, 468);
+    ctx.fillText('Keyboard or on-screen pad: Move player', CANVAS_W / 2, 448);
+    ctx.fillText('Click / Spacebar / FIRE button: Shoot', CANVAS_W / 2, 468);
     ctx.fillText('Collect the glowing  ★  to secure the Sword of Damocles', CANVAS_W / 2, 488);
     ctx.fillText('Reach the  ⊕  extraction marker to escape', CANVAS_W / 2, 508);
 
@@ -495,7 +523,7 @@
     if (Math.floor(Date.now() / 550) % 2 === 0) {
       ctx.font = 'bold 17px "Courier New"';
       ctx.fillStyle = C.text;
-      ctx.fillText('[ PRESS  ENTER  TO  BEGIN ]', CANVAS_W / 2, 558);
+      ctx.fillText('[ PRESS ENTER OR TAP START ]', CANVAS_W / 2, 558);
     }
   }
 
@@ -717,7 +745,7 @@
     ctx.textAlign = 'left';
     ctx.font = '9px "Courier New"';
     ctx.fillStyle = '#444';
-    ctx.fillText('WASD:MOVE  MOUSE AIM+CLICK/SPACE:SHOOT', 12, y0 + 50);
+    ctx.fillText('PAD:MOVE  FIRE:SHOOT', 12, y0 + 50);
     ctx.textAlign = 'right';
     ctx.fillText("ESCAPE FROM L.A. – SNAKE PLISSKEN'S ESCAPE", CANVAS_W - 8, y0 + 50);
   }
